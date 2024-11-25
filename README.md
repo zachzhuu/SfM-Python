@@ -1,4 +1,6 @@
-# Structure from Motion
+# Structure from Motion Python
+
+This repository is for a course assignment and is **still in development**.
 
 ```bash
 conda create -n mvg python=3.10

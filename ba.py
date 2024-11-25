@@ -11,11 +11,11 @@ import matplotlib.pyplot as plt
 # It can be optimized as part of BA.camera_params
 # See https://scipy-cookbook.readthedocs.io/items/bundle_adjustment.html
 # for more details
-with open('./Foutain_Comp/K.txt', 'r') as f:
+with open('./Fountain_Comp/K.txt', 'r') as f:
     K = np.array([list(map(float, line.split())) for line in f])
 fx, fy = K[0, 0], K[1, 1]
 focal = np.float32((fx + fy) / 2)
-# My dataset is assummed to be undisorted, so I set 0 values
+# My dataset is assumed to be undistorted, so I set 0 values
 k = np.zeros(2, dtype=np.float32)
 
 class Observation:
@@ -175,13 +175,35 @@ def rotate(points, rot_vecs):
 
     return cos_theta * points + sin_theta * np.cross(v, points) \
         + dot * (1 - cos_theta) * v
+        
+
+def rotate_points(points, rot_vecs):
+    """
+    Rotate points by given rotation vectors using Rodrigues' rotation formula.
+    
+    Parameters:
+    points (np.ndarray): Array of 3D points of shape (N, 3).
+    rot_vecs (np.ndarray): Array of rotation vectors of shape (N, 3).
+    
+    Returns:
+    np.ndarray: Rotated points of shape (N, 3).
+    """
+    theta = np.linalg.norm(rot_vecs, axis=1)[:, np.newaxis]
+    with np.errstate(invalid='ignore', divide='ignore'):
+        v = np.divide(rot_vecs, theta, out=np.zeros_like(rot_vecs), where=theta!=0)
+    dot = np.sum(points * v, axis=1)[:, np.newaxis]
+    cos_theta = np.cos(theta)
+    sin_theta = np.sin(theta)
+
+    rotated_points = cos_theta * points + sin_theta * np.cross(v, points) + dot * (1 - cos_theta) * v
+    return rotated_points
 
 
 def project(points, camera_params):
     """
     Convert 3-D points to 2-D by projecting onto images.
     """
-    points_proj = rotate(points, camera_params[:, :3])
+    points_proj = rotate_points(points, camera_params[:, :3])
     points_proj += camera_params[:, 3:6]
     points_proj = -points_proj[:, :2] / points_proj[:, 2, np.newaxis]
     f = focal
